@@ -11,7 +11,7 @@ datasource db {
 model DumpItem {
   id          String      @id @default(cuid())
   type        String      // "text", "image", "pdf", etc.
-  content     String      // For text content or file path
+  content     String      @db.Text    // For text content or Base64 encoded file content
   fileName    String?     // Optional filename for files
   mimeType    String?     // MIME type for files
   createdAt   DateTime    @default(now())

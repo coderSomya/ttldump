@@ -2,8 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
 import { getExpirationTime, detectFileType } from '@/app/lib/utils';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET handler to fetch all non-expired dumps
@@ -51,31 +49,15 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Process file upload server-side
       fileName = file.name;
       mimeType = file.type;
       
-      // Process file upload server-side
+      // Convert file to Base64
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
+      const base64Content = `data:${file.type};base64,${buffer.toString('base64')}`;
       
-      // Ensure uploads directory exists
-      const uploadDir = join(process.cwd(), 'public', 'uploads');
-      try {
-        await mkdir(uploadDir, { recursive: true });
-      } catch (error) {
-        // Directory might already exist
-      }
-      
-      // Generate unique filename
-      const uniqueFilename = `${uuidv4()}-${file.name}`;
-      const filePath = join(uploadDir, uniqueFilename);
-      
-      // Write file
-      await writeFile(filePath, buffer);
-      
-      // Store the relative path
-      content = `/uploads/${uniqueFilename}`;
+      content = base64Content;
     }
     
     // Create the dump item
