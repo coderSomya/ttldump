@@ -1,0 +1,19 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DumpItem {
+  id          String      @id @default(cuid())
+  type        String      // "text", "image", "pdf", etc.
+  content     String      // For text content or file path
+  fileName    String?     // Optional filename for files
+  mimeType    String?     // MIME type for files
+  createdAt   DateTime    @default(now())
+  expiresAt   DateTime    // When the item will be deleted
+}

@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ttldump
 
-## Getting Started
+A minimalist temporary storage solution for text, images, and files with a 10-minute TTL (Time To Live).
 
-First, run the development server:
+## Features
+
+- Upload and store text, images, PDFs, and other files temporarily
+- Clean black and white minimalist UI
+- 10-minute TTL for all items (automatically deleted after expiration)
+- Copy button for text items
+- Download button for files and images
+- Real-time countdown timer for each item
+
+## Tech Stack
+
+- Next.js 14 (App Router)
+- TypeScript
+- Prisma ORM
+- PostgreSQL
+- Tailwind CSS (minimal usage, mostly custom CSS)
+
+## Setup Instructions
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn
+- PostgreSQL database
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/ttldump.git
+cd ttldump
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Configure environment variables:
+   
+   Copy the `.env.example` file to `.env` and update the database connection string:
+
+```
+DATABASE_URL="postgresql://username:password@localhost:5432/ttldump?schema=public"
+```
+
+4. Set up the database:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+5. Run the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Setting Up Cleanup Cron Job
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To ensure expired items are automatically cleaned up, set up a cron job to call the cleanup endpoint:
 
-## Learn More
+```bash
+# Run every minute
+* * * * * curl http://localhost:3000/api/cron/cleanup
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project can be deployed on any platform that supports Next.js, such as Vercel, Netlify, or a custom server.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For production deployment, make sure to:
 
-## Deploy on Vercel
+1. Set up a production PostgreSQL database
+2. Configure the `DATABASE_URL` environment variable
+3. Set up a cron job to clean up expired items
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
