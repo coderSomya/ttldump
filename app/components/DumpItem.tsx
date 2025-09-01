@@ -14,6 +14,9 @@ interface DumpItemProps {
 export default function DumpItem({ item }: DumpItemProps) {
   const [timeLeft, setTimeLeft] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showHashInput, setShowHashInput] = useState(false);
+  const [hashKey, setHashKey] = useState('');
+  const [hashError, setHashError] = useState('');
 
   useEffect(() => {
     // Update time left
@@ -28,14 +31,74 @@ export default function DumpItem({ item }: DumpItemProps) {
 
   const handleCopy = () => {
     if (item.type === 'text') {
-      navigator.clipboard.writeText(item.content);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(item.content);
+      } else {
+        // Fallback: create a temporary textarea and copy
+        const textArea = document.createElement('textarea');
+        textArea.value = item.content;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleCopyWithHash = async () => {
+    if (!hashKey.trim()) {
+      setHashError('Hash key is required');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/decode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          hashKey: hashKey,
+          itemId: item.id 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle error gracefully instead of throwing
+        setHashError(data.error || 'Failed to decode text');
+        return;
+      }
+
+      // Copy the decoded text with fallback
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(data.decodedText);
+      } else {
+        // Fallback: create a temporary textarea and copy
+        const textArea = document.createElement('textarea');
+        textArea.value = data.decodedText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
+      setCopied(true);
+      setShowHashInput(false);
+      setHashKey('');
+      setHashError('');
+      
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e: any) {
+      setHashError('Network error or invalid response');
+    }
+  };
+
   const handleDownload = () => {
-     if (item.type !== 'text' && item.fileName) {
+     if (item.type !== 'text' && item.type !== 'hashed_text' && item.fileName) {
        // Create an anchor element and simulate a click to download the file
        const link = document.createElement('a');
        link.href = item.content; // This is already a data URL
@@ -55,7 +118,7 @@ export default function DumpItem({ item }: DumpItemProps) {
           </span>
           <div>
             <h3 className="font-medium text-base mb-1">
-              {item.fileName || `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Item`}
+              {item.fileName || `${item.type === 'hashed_text' ? 'Hashed Text' : item.type.charAt(0).toUpperCase() + item.type.slice(1)} Item`}
             </h3>
             <p className="ttldump-meta">
               Expires in {timeLeft} • Added {item.createdAt.toLocaleTimeString()}
@@ -72,7 +135,16 @@ export default function DumpItem({ item }: DumpItemProps) {
               {copied ? 'Copied!' : 'Copy'}
             </Button>
           )}
-          {item.type !== 'text' && (
+          {item.type === 'hashed_text' && (
+            <Button
+              onClick={() => setShowHashInput(!showHashInput)}
+              variant="outline"
+              className="ttldump-action-button"
+            >
+              {copied ? 'Copied!' : 'Copy with Hash'}
+            </Button>
+          )}
+          {item.type !== 'text' && item.type !== 'hashed_text' && (
             <Button
               onClick={handleDownload}
               variant="outline"
@@ -83,8 +155,39 @@ export default function DumpItem({ item }: DumpItemProps) {
           )}
         </div>
       </div>
+      
+      {item.type === 'hashed_text' && showHashInput && (
+        <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={hashKey}
+              onChange={(e) => setHashKey(e.target.value)}
+              placeholder="Enter hash key..."
+              className="ttldump-input flex-1"
+            />
+            <Button
+              onClick={handleCopyWithHash}
+              className="px-3 py-1"
+            >
+              Copy
+            </Button>
+          </div>
+          {hashError && (
+            <p className="text-red-500 text-sm mt-1">{hashError}</p>
+          )}
+        </div>
+      )}
+      
       <div className="mt-4">
              {item.type === 'text' && (
+               <div className="ttldump-text-content">
+                 <pre className="whitespace-pre-wrap break-words m-0">
+                   {item.content}
+                 </pre>
+               </div>
+             )}
+             {item.type === 'hashed_text' && (
                <div className="ttldump-text-content">
                  <pre className="whitespace-pre-wrap break-words m-0">
                    {item.content}

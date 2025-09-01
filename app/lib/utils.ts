@@ -2,12 +2,42 @@
 import { DumpItemType } from '../types';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 
 // Calculate expiration time (10 minutes from now)
 export function getExpirationTime(): Date {
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + 10);
   return expiresAt;
+}
+
+// Encrypt text with a hash key (can be decrypted back)
+export function encryptText(text: string, hashKey: string): string {
+  const iv = crypto.randomBytes(16);
+  // Use PBKDF2 to derive a proper key from the hashKey
+  const key = crypto.pbkdf2Sync(hashKey, 'salt', 1000, 32, 'sha256');
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
+// Decrypt text with the same hash key
+export function decryptText(encryptedText: string, hashKey: string): string | null {
+  try {
+    const [ivHex, encrypted] = encryptedText.split(':');
+    if (!ivHex || !encrypted) return null;
+    
+    const iv = Buffer.from(ivHex, 'hex');
+    // Use PBKDF2 to derive the same key from the hashKey
+    const key = crypto.pbkdf2Sync(hashKey, 'salt', 1000, 32, 'sha256');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (error) {
+    return null; // Wrong key or corrupted data
+  }
 }
 
 // Format relative time
@@ -32,6 +62,8 @@ export function getIconForType(type: DumpItemType): string {
   switch (type) {
     case 'text':
       return '📝';
+    case 'hashed_text':
+      return '🔒';
     case 'image':
       return '🖼️';
     case 'pdf':

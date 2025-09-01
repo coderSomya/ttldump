@@ -10,10 +10,11 @@ datasource db {
 
 model DumpItem {
   id          String      @id @default(cuid())
-  type        String      // "text", "image", "pdf", etc.
+  type        String      // "text", "hashed_text", "image", "pdf", etc.
   content     String      @db.Text    // For text content or Base64 encoded file content
   fileName    String?     // Optional filename for files
   mimeType    String?     // MIME type for files
+  hashKey     String?     // Hash key for hashed text items
   createdAt   DateTime    @default(now())
   expiresAt   DateTime    // When the item will be deleted
 }

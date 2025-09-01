@@ -13,6 +13,7 @@ interface DumpFormProps {
 export default function DumpForm({ onItemAdded }: DumpFormProps) {
   const [type, setType] = useState<DumpItemType>('text');
   const [textContent, setTextContent] = useState('');
+  const [secretKey, setSecretKey] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,11 +29,18 @@ export default function DumpForm({ onItemAdded }: DumpFormProps) {
       const formData = new FormData();
       formData.append('type', type);
 
-      if (type === 'text') {
+      if (type === 'text' || type === 'hashed_text') {
         if (!textContent.trim()) {
           throw new Error('Text content cannot be empty');
         }
         formData.append('content', textContent);
+        
+        if (type === 'hashed_text') {
+          if (!secretKey.trim()) {
+            throw new Error('Secret key is required for hashed text');
+          }
+          formData.append('secretKey', secretKey);
+        }
       } else {
         if (!file) {
           throw new Error('No file selected');
@@ -50,16 +58,21 @@ export default function DumpForm({ onItemAdded }: DumpFormProps) {
         throw new Error(data.error || 'Failed to create dump item');
       }
 
+      const data = await response.json();
+      
       // Reset form
       setTextContent('');
+      setSecretKey('');
       setFile(null);
       setSuccess(true);
       
       // Notify parent
       onItemAdded();
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(false), 3000);
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccess(false);
+      }, 5000);
     } catch (e: any) {
       setError(e.message || 'An error occurred');
     } finally {
@@ -75,20 +88,20 @@ export default function DumpForm({ onItemAdded }: DumpFormProps) {
         <div className="mb-4">
           <label className="block mb-2 text-sm font-medium">Type</label>
           <div className="ttldump-type-selector">
-            {['text', 'image', 'pdf', 'file'].map((itemType) => (
+            {['text', 'hashed_text', 'image', 'pdf', 'file'].map((itemType) => (
               <Button
                 key={itemType}
                 type="button"
                 variant={type === itemType ? 'default' : 'outline'}
                 onClick={() => setType(itemType as DumpItemType)}
               >
-                {itemType.charAt(0).toUpperCase() + itemType.slice(1)}
+                {itemType === 'hashed_text' ? 'Hashed Text' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
               </Button>
             ))}
           </div>
         </div>
 
-        {type === 'text' ? (
+        {(type === 'text' || type === 'hashed_text') ? (
           <div className="mb-4">
             <label htmlFor="content" className="block mb-2 text-sm font-medium">
               Content
@@ -101,6 +114,25 @@ export default function DumpForm({ onItemAdded }: DumpFormProps) {
               placeholder="Enter your text here..."
               rows={5}
             />
+            
+            {type === 'hashed_text' && (
+              <div className="mt-3">
+                <label htmlFor="secretKey" className="block mb-2 text-sm font-medium">
+                  Secret Key
+                </label>
+                <Input
+                  id="secretKey"
+                  type="text"
+                  value={secretKey}
+                  onChange={(e) => setSecretKey(e.target.value)}
+                  placeholder="Enter your secret key..."
+                  className="w-full"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This key will be used to encrypt your text. Keep it safe!
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mb-4">
@@ -134,7 +166,11 @@ export default function DumpForm({ onItemAdded }: DumpFormProps) {
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
         {success && (
-          <p className="text-green-500 mb-4">Item added successfully!</p>
+          <p className="text-green-500 mb-4">
+            {type === 'hashed_text' 
+              ? 'Text encrypted successfully!' 
+              : 'Item added successfully!'}
+          </p>
         )}
 
         <Button

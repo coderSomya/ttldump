@@ -1,5 +1,5 @@
 // src/types/index.ts
-export type DumpItemType = 'text' | 'image' | 'pdf' | 'file';
+export type DumpItemType = 'text' | 'hashed_text' | 'image' | 'pdf' | 'file';
 
 export interface DumpItem {
   id: string;
@@ -9,6 +9,7 @@ export interface DumpItem {
   mimeType?: string | null;
   createdAt: Date;
   expiresAt: Date;
+  hashKey?: string; // For hashed text items
 }
 
 export interface CreateDumpItemPayload {
@@ -16,4 +17,5 @@ export interface CreateDumpItemPayload {
   content: string;
   fileName?: string;
   mimeType?: string;
+  hashKey?: string; // For hashed text items
 }
